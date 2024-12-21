@@ -7,13 +7,13 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "production"
-database_id = "799876c3-72f1-491d-a7f2-742d512e98f5"
-preview_database_id = "1f5819d2-f608-4c6b-bd2a-871a4712e7d8"
+database_id = "6c67beda-b091-4da7-91b3-a722134db374"
+preview_database_id = "feb71cb4-05b3-4c40-8ea4-4a9de6f30846"
 
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "images-storage"
-preview_bucket_name = "storage"
+preview_bucket_name = "images-storage-dev"
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
