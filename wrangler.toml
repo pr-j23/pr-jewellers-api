@@ -4,6 +4,17 @@ main = "src/index.js"
 compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
+[[d1_databases]]
+binding = "DB"
+database_name = "production"
+database_id = "799876c3-72f1-491d-a7f2-742d512e98f5"
+preview_database_id = "1f5819d2-f608-4c6b-bd2a-871a4712e7d8"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "images-storage"
+preview_bucket_name = "storage"
+
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 # Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
