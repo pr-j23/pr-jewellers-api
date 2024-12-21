@@ -2,7 +2,7 @@ export const SQL_TYPES = {
     TEXT: 'TEXT',
     INTEGER: 'INTEGER',
     REAL: 'REAL',
-    BLOB: 'BLOB'
+    IMAGE_URL: 'VARCHAR(255)'
 };
 
 export const HTTP_STATUS = {
