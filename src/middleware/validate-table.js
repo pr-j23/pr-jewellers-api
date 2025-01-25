@@ -7,6 +7,17 @@ export const validateTable = () => async (c, next) => {
     WHERE type='table' AND name=?
   `).bind(tableName).first();
 
+  const columnDefinitions = await c.env.DB.prepare(`
+    PRAGMA table_info(${tableName})
+  `).all();
+
+  const columnTypes = columnDefinitions?.results?.reduce((acc, col) => {
+      acc[col.name] = col.type; // map column name to its type
+      return acc;
+  }, {});
+
+  c.set('column_types', columnTypes);
+
   if (!tableExists) {
     return c.json({ status: 'warning', message: 'Table not found' }, 404);
   }
