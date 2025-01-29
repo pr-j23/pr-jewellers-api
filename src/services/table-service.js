@@ -1,4 +1,3 @@
-import { QueryBuilder } from '../../../my_server/src/utils/query-builder';
 import { QueryBuilder } from '../utils/query-builder';
 
 export class TableService {
