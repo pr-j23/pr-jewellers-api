@@ -15,14 +15,14 @@ const createTableSchema = z.object({
   tableName: z.string().min(1),
   columns: z.array(z.object({
     column_name: z.string(),
-    column_type: z.enum([SQL_TYPES.TEXT, SQL_TYPES.INTEGER, SQL_TYPES.REAL, SQL_TYPES.IMAGE_URL]),
+    column_type: z.enum([SQL_TYPES.TEXT, SQL_TYPES.INTEGER, SQL_TYPES.REAL, SQL_TYPES.IMAGE_URL, SQL_TYPES.BOOLEAN]),
     nullable: z.boolean().optional()
   })),
 });
 
 const addColumnSchema = z.object({
   column_name: z.string(),
-  column_type: z.enum([SQL_TYPES.TEXT, SQL_TYPES.INTEGER, SQL_TYPES.REAL, SQL_TYPES.IMAGE_URL]),
+  column_type: z.enum([SQL_TYPES.TEXT, SQL_TYPES.INTEGER, SQL_TYPES.REAL, SQL_TYPES.IMAGE_URL, SQL_TYPES.BOOLEAN]),
   nullable: z.boolean().optional()
 })
 
@@ -43,12 +43,12 @@ router.post('/create', zValidator('json', createTableSchema), async (c) => {
 
 router.post('/:tableName/columns', zValidator('json', addColumnSchema), validateTable(), async (c) => {
   const { tableName } = c.req.param();
-  const { column_name, column_type } = await c.req.json();
+  const { column_name, column_type, nullable } = await c.req.json();
   try {
     if (column_name === 'id' || column_name === 'created_at' || column_name === 'updated_at') {
       throw Error()
     }
-    await tableService.addColumn(c.env.DB, tableName, column_name, column_type);
+    await tableService.addColumn(c.env.DB, tableName, column_name, column_type, nullable);
     return c.json({ status: 'success', message: 'Column added successfully!' });
   }
   catch (error) {

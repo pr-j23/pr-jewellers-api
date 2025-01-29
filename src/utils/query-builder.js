@@ -1,7 +1,14 @@
 export class QueryBuilder {
   static createTableQuery(tableName, columns) {
     const columnDefinitions = columns
-      .map(col => `${col.column_name} ${col.column_type}${col.nullable ? '' : ' NOT NULL'}`)
+      .map(col => {
+        // Convert BOOLEAN to INTEGER with a CHECK constraint
+        if (col.column_type.toUpperCase() === 'BOOLEAN') {
+          return `${col.column_name} INTEGER CHECK(${col.column_name} IN (0, 1)) DEFAULT 0${col.nullable ? '' : ' NOT NULL'}`;
+        }
+        return `${col.column_name} ${col.column_type}${col.nullable ? '' : ' NOT NULL'}`;
+      })
+      // `${col.column_name} ${col.column_type}${col.nullable ? '' : ' NOT NULL'}`)
       .join(', ');
 
     return `

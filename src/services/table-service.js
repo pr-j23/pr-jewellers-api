@@ -1,3 +1,4 @@
+import { QueryBuilder } from '../../../my_server/src/utils/query-builder';
 import { QueryBuilder } from '../utils/query-builder';
 
 export class TableService {
@@ -6,8 +7,10 @@ export class TableService {
         await db.prepare(query).run();
     }
 
-    async addColumn(db, tableName, columnName, columnType) {
-        const query = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`;
+    async addColumn(db, tableName, column_name, column_type, nullable) {
+        const query = column_type.toUpperCase() === 'BOOLEAN' ?
+        `ALTER TABLE ${tableName} ADD COLUMN ${column_name} INTEGER CHECK(${column_name} IN (0, 1)) DEFAULT 0${nullable ? '' : ' NOT NULL'}`
+        : `ALTER TABLE ${tableName} ADD COLUMN ${column_name} ${column_type} ${nullable ? '' : ' NOT NULL'}`;
         await db.prepare(query).run();
     }
 
@@ -23,6 +26,16 @@ export class TableService {
             return result
         }
         catch (error) {
+            if (error.message.includes('CHECK constraint failed')) {
+                // Extract column name from error message
+                const match = error.message.match(/CHECK constraint failed: (\w+)/);
+                const columnName = match ? match[1] : 'Unknown Column';
+    
+                return {
+                    status: 'error',
+                    message: `Column "${columnName}" will accept only boolean values (0 for false, 1 for true).`
+                };
+            }
             return { status: 'error', message: error?.message?.match(/:(.*?):/)[1].trim() || 'Error message, Not Found' }
         }
     }
@@ -61,6 +74,16 @@ export class TableService {
             return result
         }
         catch (error) {
+            if (error.message.includes('CHECK constraint failed')) {
+                // Extract column name from error message
+                const match = error.message.match(/CHECK constraint failed: (\w+)/);
+                const columnName = match ? match[1] : 'Unknown Column';
+    
+                return {
+                    status: 'error',
+                    message: `Column "${columnName}" will accept only boolean values (0 for false, 1 for true).`
+                };
+            }
             return { status: 'error', message: error?.message?.match(/:(.*):/)[1].trim() || 'Error message, Not Found' }
         }
     }
