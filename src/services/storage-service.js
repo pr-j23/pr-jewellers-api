@@ -17,4 +17,12 @@ export class StorageService {
   async deleteFile(bucket, key) {
     await bucket.delete(key);
   }
+
+  async deleteMultiFile(bucket, arr) {
+    await Promise.all(
+      arr.map(async (key) => {
+        await bucket.delete(key);
+      })
+    );
+  }
 }

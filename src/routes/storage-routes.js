@@ -20,7 +20,7 @@ router.post('/update/:key', parseFormData, async (c) => {
 router.delete('/delete/:key', async (c) => {
     const { key } = c.req.param();
     await storageService.deleteFile(c.env.BUCKET, key);
-    return c.json({ status: 'success', message: 'File deleted successfully',result });
+    return c.json({ status: 'success', message: 'File deleted successfully' });
 });
 
 export { router as storageRouter };
