@@ -6,6 +6,7 @@ import { validateTable } from '../middleware/validate-table';
 import { SQL_TYPES } from '../config/constants';
 import { parseFormData } from '../middleware/parseData';
 import { StorageService } from '../services/storage-service';
+import { imageRemover } from '../middleware/images-remover';
 
 const router = new Hono();
 const tableService = new TableService();
@@ -73,7 +74,6 @@ router.delete('/:tableName/columns', zValidator('json', removeColumnSchema), val
 
 router.post('/:tableName/records', validateTable(), parseFormData, async (c) => {
   const { tableName } = c.req.param();
-  const { overwrite } = c.req.query();
   const data = c.get('fields');
   const files = c.get('files');
 
@@ -81,44 +81,41 @@ router.post('/:tableName/records', validateTable(), parseFormData, async (c) => 
   let file_data = {};
 
   const bucket = c.env.BUCKET
-  for (const [key, value] of files.entries()) {
-    const object = await storage.getFile(bucket, value.filename);
-
-    if (!overwrite && object) {
-      return c.json({ status: 'warning', message: `Image asset with name - "${value.filename}" already exists!`, note: `set params ?overwrite=true else rename the image` });
+  try {
+    for (const [key, value] of files.entries()) {
+      const file_name = `/assets/images/${Date.now() + '_' + value.filename}`
+  
+      if (!file_columns.includes(value.fieldname)) {
+        file_columns.push(value.fieldname)
+      }
+  
+      if (!file_data[value.fieldname]) {
+        file_data[value.fieldname] = [file_name]
+      }
+      else {
+        file_data[value.fieldname].push(file_name)
+      }
+  
+      const image = await storage.uploadFile(bucket, Date.now() + '_' + value.filename, value.data, value.type)
+      if (!image) {
+        return c.json({ status: 'error', message: 'Error saving image!' }, 400)
+      }
     }
-    const file_name = `/assets/images/${value.filename}`
-
-    if (!file_columns.includes(value.fieldname)) {
-      file_columns.push(value.fieldname)
+  
+    for (const [key, value] of file_columns.entries()) {
+      const jsonString = JSON.stringify(file_data[value]);
+      data[value] = jsonString
     }
-
-    if (!file_data[value.fieldname]) {
-      file_data[value.fieldname] = [file_name]
+  
+    const result = await tableService.createRecord(c.env.DB, tableName, data);
+    if (!result?.success) {
+      return c.json(result, 400);
     }
-    else {
-      file_data[value.fieldname].push(file_name)
-    }
-
-    // data[value.fieldname] = file_name;
-    const image = await storage.uploadFile(bucket, value.filename, value.data, value.type)
-    if (!image) {
-      return c.json({ status: 'error', message: 'Error saving image!' }, 400)
-    }
+    return c.json({ status: 'success', message: 'Record added successfully!' });
   }
-
-  for (const [key, value] of file_columns.entries()) {
-    // Convert the array to a JSON string
-    const jsonString = JSON.stringify(file_data[value]);
-    data[value] = jsonString
+  catch (error) {
+    return c.json({ status: 'error', message: 'Something went wrong or Column does not exist!', note: error.message }, 400);
   }
-
-  // return c.json({ status: 'checking', files, data, tableName, overwrite, file_columns, file_data, file_columns })
-  const result = await tableService.createRecord(c.env.DB, tableName, data);
-  if (!result?.success) {
-    return c.json(result, 400);
-  }
-  return c.json({ status: 'success', message: 'Record added successfully!' });
 });
 
 router.get('/:tableName/records', validateTable(), async (c) => {
@@ -131,8 +128,26 @@ router.get('/:tableName/records', validateTable(), async (c) => {
   return c.json({ status: result?.success ? 'success' : 'failed', message: result?.success ? 'Data fetched Successfully!' : 'Something went wrong, please try after sometime!', data: result?.results || [] });
 });
 
-router.put('/:tableName/records/:id', validateTable(), parseFormData, async (c) => {
+router.put('/:tableName/records/:id', validateTable(), parseFormData, imageRemover(), async (c) => {
   const { tableName, id } = c.req.param();
+  const { to_delete } = c.req.query();
+
+  let deleteImages = to_delete ? JSON.parse(to_delete) : []
+  const toDelete = to_delete ? JSON.parse(to_delete) : []
+
+  deleteImages = deleteImages?.map((img) => {
+    return img.split("images/")[1]
+  })
+
+  const columns = c.get('column_types')
+  const record = c.get('record')
+  const image_Columns = Object.keys(columns).map((key) => {
+    if (columns[key] === 'JSONB') {
+      return key
+    }
+    return null
+  }).filter((value) => value !== null)
+
   const data = c.get('fields');
   const files = c.get('files');
 
@@ -141,8 +156,8 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, async (c) 
 
   const bucket = c.env.BUCKET
   for (const [key, value] of files.entries()) {
-    
-    const file_name = `/assets/images/${value.filename}`
+
+    const file_name = `/assets/images/${Date.now() + '_' + value.filename}`
 
     if (!file_columns.includes(value.fieldname)) {
       file_columns.push(value.fieldname)
@@ -155,16 +170,20 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, async (c) 
       file_data[value.fieldname].push(file_name)
     }
 
-    // data[value.fieldname] = file_name;
-    const image = await storage.uploadFile(bucket, value.filename, value.data, value.type)
+    const image = await storage.uploadFile(bucket, Date.now() + '_' + value.filename, value.data, value.type)
     if (!image) {
       return c.json({ status: 'error', message: 'Error saving image!' }, 400)
     }
   }
 
   for (const [key, value] of file_columns.entries()) {
-    // Convert the array to a JSON string
-    const jsonString = JSON.stringify(file_data[value]);
+    const column = JSON.parse(record[value]).filter((img) => {
+      if (toDelete.includes(img)) {
+        return false
+      }
+      return true
+    })
+    const jsonString = JSON.stringify([...column, ...file_data[value]]);
     data[value] = jsonString
   }
 
@@ -172,16 +191,67 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, async (c) 
   if (!result?.success) {
     return c.json(result, 400);
   }
+
+  const recordtoDelete = []
+
+  image_Columns.map((value) => {
+    if (!record[value]) return
+    const imageColumn = JSON.parse(record[value])
+    imageColumn.map((img) => {
+      const imageName = img.split("images/")
+      if (imageName && deleteImages.includes(imageName[1])) {
+        recordtoDelete.push(imageName[1])
+      }
+    })
+  })
+
+  await storage.deleteMultiFile(bucket, recordtoDelete)
+
   return c.json({ status: 'success', message: 'Record updated successfully!' });
 });
 
-router.delete('/:tableName/records/:id', validateTable(), async (c) => {
+router.delete('/:tableName/records/:id', validateTable(), imageRemover(), async (c) => {
   const { tableName, id } = c.req.param();
-  const result = await tableService.deleteRecord(c.env.DB, tableName, id);
-  if (!result?.meta?.changes) {
-    return c.json({ status: 'error', message: `Record not found with id: ${id}` }, 404)
+
+  const bucket = c.env.BUCKET
+  const columns = c.get('column_types')
+  const record = c.get('record')
+  const image_Columns = Object.keys(columns).map((key) => {
+    if (columns[key] === 'JSONB') {
+      return key
+    }
+    return null
+  }).filter((value) => value !== null)
+
+  try {
+
+    const result = await tableService.deleteRecord(c.env.DB, tableName, id);
+    if (!result?.meta?.changes) {
+      return c.json({ status: 'error', message: `Record not found with id: ${id}` }, 404)
+    }
+
+    const recordtoDelete = []
+
+    image_Columns.map((value) => {
+      if (!record[value]) return
+      const imageColumn = JSON.parse(record[value])
+      imageColumn.map((img) => {
+        const imageName = img.split("images/")
+
+        if (imageName) {
+          recordtoDelete.push(imageName[1])
+        }
+      })
+    })
+
+    await storage.deleteMultiFile(bucket, recordtoDelete)
+
+    return c.json({ status: 'success', message: 'Record deleted successfully!' })
   }
-  return c.json({ status: 'success', message: 'Record deleted successfully!' });
+  catch (error) {
+    return c.json({ status: 'error', message: 'Something went wrong or Column does not exist!', note: error.message }, 400);
+  }
+
 });
 
 export { router as tableRouter };
