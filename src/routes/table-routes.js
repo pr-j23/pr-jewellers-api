@@ -132,8 +132,8 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, imageRemov
   const { tableName, id } = c.req.param();
   const { to_delete } = c.req.query();
 
-  let deleteImages = to_delete ? JSON.parse(to_delete) : []
-  const toDelete = to_delete ? JSON.parse(to_delete) : []
+  let deleteImages = to_delete ? JSON.parse(decodeURIComponent(to_delete)) : []
+  const toDelete = to_delete ? JSON.parse(decodeURIComponent(to_delete)) : []
 
   deleteImages = deleteImages?.map((img) => {
     return img.split("images/")[1]
