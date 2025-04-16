@@ -30,7 +30,7 @@ export const parseFormData = async (c, next) => {
                     data: await value.arrayBuffer(), // Convert to ArrayBuffer
                 });
             } else {
-                if (columnTypes[key] === 'VARCHAR(255)') {
+                if (columnTypes[key] === 'JSONB' && value !==  'no_upload') {
                     return c.json({ status: 'error', message: `Field ${key} should be type image/* only  or invalid Column`, note: 'Upload only files of type image/*' }, 400);
                 }
                 fields[key] = value;
