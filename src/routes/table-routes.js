@@ -187,6 +187,16 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, imageRemov
     data[value] = jsonString
   }
 
+  for (const [key, value] of image_Columns.entries()) {
+    if (!record[value]) return
+    if (data[value] === 'no_upload') {
+      data[value] = JSON.stringify(JSON.parse(record[value]).filter((val) => {
+        const imageName = val.split("images/")
+        return !deleteImages.includes(imageName[1])
+      }))
+    }
+  }
+
   const result = await tableService.updateRecord(c.env.DB, tableName, id, data);
   if (!result?.success) {
     return c.json(result, 400);
