@@ -177,12 +177,12 @@ router.put('/:tableName/records/:id', validateTable(), parseFormData, imageRemov
   }
 
   for (const [key, value] of file_columns.entries()) {
-    const column = JSON.parse(record[value]).filter((img) => {
+    const column = record[value] ? JSON.parse(record[value]).filter((img) => {
       if (toDelete.includes(img)) {
         return false
       }
       return true
-    })
+    }) : []
     const jsonString = JSON.stringify([...column, ...file_data[value]]);
     data[value] = jsonString
   }
