@@ -1,0 +1,22 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "pr-jewellers-next-gen"
+main = "src/index.js"
+compatibility_date = "2024-11-27"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "TENANT_REGISTRY"
+id = "00000000000000000000000000000000"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "next-gen-production"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "next-gen-images"
+
+[vars]
+# Optional JSON blob for tenant configs during development
+TENANT_REGISTRY_JSON = "{\"default\":{\"displayName\":\"Default Tenant\",\"dbBinding\":\"DB\",\"bucketBinding\":\"BUCKET\",\"apiKeys\":[\"dev-admin-key\"],\"modules\":[\"products\"],\"featureFlags\":{},\"storagePrefix\":\"default\"}}"
