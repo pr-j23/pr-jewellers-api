@@ -6,6 +6,8 @@ const app = new Hono();
 
 setupMiddleware(app);
 
+
+
 // Health Check Endpoint
 app.route('/api/health', healthRouter);
 
